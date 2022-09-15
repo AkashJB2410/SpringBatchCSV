@@ -46,8 +46,8 @@ public class BatchConfig {
     private LineMapper<User> getLineMapper() {
         DefaultLineMapper<User> lineMapper = new DefaultLineMapper<>();
         DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
-        lineTokenizer.setNames(new String []{"id", "prename", "firstname", "lastname"});
-        lineTokenizer.setIncludedFields(new int[]{0, 1, 2, 3});
+        lineTokenizer.setNames(new String []{"id","prename","firstname","lastname"});
+        lineTokenizer.setIncludedFields(new int[]{0,1,2,3});
         BeanWrapperFieldSetMapper<User> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
         fieldSetMapper.setTargetType(User.class);
         lineMapper.setLineTokenizer(lineTokenizer);
@@ -63,9 +63,18 @@ public class BatchConfig {
     public JdbcBatchItemWriter<User> writer() {
         JdbcBatchItemWriter<User> writer = new JdbcBatchItemWriter<>();
         writer.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
-        writer.setSql("insert into (id,prename,firstname,lastname,) value (:id,:prename,:firstname,:lastname,)");
+        writer.setSql("insert into user (id,prename,firstname,lastname) values (:id,:prename,:firstname,:lastname)");
         writer.setDataSource(this.dataSource);
         return writer;
+    }
+    @Bean
+    public Step step1() throws ParseException {
+        return this.stepBuilderFactory.get("step")
+                .<User, User>chunk(1000)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
+                .build();
     }
 
     @Bean
@@ -74,16 +83,6 @@ public class BatchConfig {
                 .incrementer(new RunIdIncrementer())
                 .flow(step1())
                 .end()
-                .build();
-    }
-
-    @Bean
-    public Step step1() throws ParseException {
-        return this.stepBuilderFactory.get("step")
-                .<User, User>chunk(1000)
-                .reader(reader())
-                .processor(processor())
-                .writer(writer())
                 .build();
     }
 
